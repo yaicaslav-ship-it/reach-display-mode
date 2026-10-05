@@ -3,11 +3,6 @@
   "id": "reachdisplay",
   "version": "${version}",
   "name": "Reach Display Mod",
-  "description": "Displays attack reach distance and alerts when too close.",
-  "authors": [
-    "YourName"
-  ],
-  "license": "MIT",
   "environment": "client",
   "entrypoints": {
     "client": [

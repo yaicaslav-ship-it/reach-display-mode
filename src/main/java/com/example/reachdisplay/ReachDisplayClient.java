@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -16,22 +15,24 @@ import net.minecraft.util.Formatting;
 public class ReachDisplayClient implements ClientModInitializer, ModInitializer {
 
     // Дистанция (в блоках), ближе которой пишется TOO CLOSE!
-    public static final double TOO_CLOSE_DISTANCE = 1.20;
-    // Время показа надписи на экране (3 секунды)
-    public static final long SHOW_DURATION_MS = 3000;
+    public static final double TOO_CLOSE_DISTANCE = 1.30;
+    // Время показа надписи (2.5 секунды)
+    public static final long SHOW_DURATION_MS = 2500;
 
-    private static double hitDistance = -1.0;
+    private static boolean isTooClose = false;
     private static long showUntil = 0L;
 
     @Override
     public void onInitialize() {
-        // Официальный эвент Fabric API при атаке сущности
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClient() && entity instanceof PlayerEntity) {
-                // Вычисляем расстояние от глаз атакующего до глаз/позиции цели
                 double dist = player.getEyePos().distanceTo(entity.getEyePos());
-                hitDistance = Math.round(dist * 100.0) / 100.0;
-                showUntil = System.currentTimeMillis() + SHOW_DURATION_MS;
+                if (dist <= TOO_CLOSE_DISTANCE) {
+                    isTooClose = true;
+                    showUntil = System.currentTimeMillis() + SHOW_DURATION_MS;
+                } else {
+                    isTooClose = false;
+                }
             }
             return ActionResult.PASS;
         });
@@ -39,7 +40,6 @@ public class ReachDisplayClient implements ClientModInitializer, ModInitializer 
 
     @Override
     public void onInitializeClient() {
-        // Отрисовка на экране
         HudRenderCallback.EVENT.register(this::onHudRender);
     }
 
@@ -47,8 +47,7 @@ public class ReachDisplayClient implements ClientModInitializer, ModInitializer 
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.options.hudHidden) return;
 
-        // Если время показа истекло — не рисуем
-        if (System.currentTimeMillis() > showUntil || hitDistance < 0) {
+        if (!isTooClose || System.currentTimeMillis() > showUntil) {
             return;
         }
 
@@ -58,37 +57,19 @@ public class ReachDisplayClient implements ClientModInitializer, ModInitializer 
         int centerX = width / 2;
         int centerY = height / 2;
 
-        // Если расстояние слишком близкое
-        if (hitDistance <= TOO_CLOSE_DISTANCE) {
-            // Красная надпись TOO CLOSE! ниже прицела
-            Text closeText = Text.literal("TOO CLOSE!").formatted(Formatting.RED, Formatting.BOLD);
+        // Компактный красный текст TOO CLOSE!
+        Text closeText = Text.literal("TOO CLOSE!").formatted(Formatting.RED);
 
-            context.getMatrices().push();
-            float scale = 1.35f;
-            context.getMatrices().scale(scale, scale, 1.0f);
+        // Масштаб 1.0 (компактный размер шрифта)
+        context.getMatrices().push();
+        float scale = 1.0f;
+        context.getMatrices().scale(scale, scale, 1.0f);
 
-            int textWidth = client.textRenderer.getWidth(closeText);
-            int drawX = (int) ((centerX / scale) - (textWidth / 2.0f));
-            int drawY = (int) ((centerY + 30) / scale);
+        int textWidth = client.textRenderer.getWidth(closeText);
+        int drawX = (int) ((centerX / scale) - (textWidth / 2.0f));
+        int drawY = (int) ((centerY + 24) / scale);
 
-            // Отрисовка с тенью
-            context.drawTextWithShadow(client.textRenderer, closeText, drawX, drawY, 0xFFFF2222);
-            context.getMatrices().pop();
-        } else {
-            // Обычное расстояние (например 2.85m)
-            String distString = String.format("%.2fm", hitDistance);
-            Text distText = Text.literal(distString).formatted(Formatting.GOLD, Formatting.BOLD);
-
-            context.getMatrices().push();
-            float scale = 1.25f;
-            context.getMatrices().scale(scale, scale, 1.0f);
-
-            int textWidth = client.textRenderer.getWidth(distText);
-            int drawX = (int) ((centerX / scale) - (textWidth / 2.0f));
-            int drawY = (int) ((centerY + 28) / scale);
-
-            context.drawTextWithShadow(client.textRenderer, distText, drawX, drawY, 0xFFFFAA00);
-            context.getMatrices().pop();
-        }
+        context.drawTextWithShadow(client.textRenderer, closeText, drawX, drawY, 0xFFFF3333);
+        context.getMatrices().pop();
     }
 }

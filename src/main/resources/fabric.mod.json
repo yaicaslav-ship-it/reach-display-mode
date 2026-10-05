@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "reachdisplay",
+  "version": "${version}",
+  "name": "Reach Display Mod",
+  "description": "Displays attack reach distance and alerts when too close.",
+  "authors": ["YourName"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.example.reachdisplay.ReachDisplayClient"
+    ],
+    "main": [
+      "com.example.reachdisplay.ReachDisplayClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
